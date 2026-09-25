@@ -1,0 +1,3 @@
+comment = 'PostgreSQL index usage and duplicate index advisor'
+default_version = '1.0'
+relocatable = true
