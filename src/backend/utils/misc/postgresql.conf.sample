@@ -811,6 +811,7 @@
 #default_transaction_deferrable = off
 #session_replication_role = 'origin'
 #statement_timeout = 0                          # in milliseconds, 0 is disabled
+#kumar_query_delay = 0                  # Kumar Server: delay before each query, 0 disables
 #transaction_timeout = 0                        # in milliseconds, 0 is disabled
 #lock_timeout = 0                               # in milliseconds, 0 is disabled
 #idle_in_transaction_session_timeout = 0        # in milliseconds, 0 is disabled

@@ -1549,6 +1549,16 @@
   boot_val => 'PG_KRB_SRVTAB',
 },
 
+{ name => 'kumar_query_delay', type => 'int', context => 'PGC_USERSET', group => 'CLIENT_CONN_STATEMENT',
+  short_desc => 'Kumar Server: waits this long before running each query.',
+  long_desc => '0 disables the delay.',
+  flags => 'GUC_UNIT_MS',
+  variable => 'kumar_query_delay',
+  boot_val => '0',
+  min => '0',
+  max => '60000',
+},
+
 { name => 'lc_messages', type => 'string', context => 'PGC_SUSET', group => 'CLIENT_CONN_LOCALE',
   short_desc => 'Sets the language in which messages are displayed.',
   long_desc => 'An empty string means use the operating system setting.',

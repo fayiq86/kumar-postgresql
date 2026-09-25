@@ -39,6 +39,7 @@ typedef enum
 
 extern PGDLLIMPORT bool Log_disconnections;
 extern PGDLLIMPORT int log_statement;
+extern PGDLLIMPORT int kumar_query_delay;
 
 /* Flags for restrict_nonsystem_relation_kind value */
 #define RESTRICT_RELKIND_VIEW			0x01

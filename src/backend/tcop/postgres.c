@@ -77,6 +77,7 @@
 #include "tcop/pquery.h"
 #include "tcop/tcopprot.h"
 #include "tcop/utility.h"
+#include "utils/fmgrprotos.h"
 #include "utils/guc_hooks.h"
 #include "utils/injection_point.h"
 #include "utils/lsyscache.h"
@@ -100,6 +101,7 @@ CommandDest whereToSendOutput = DestDebug;
 bool		Log_disconnections = false;
 
 int			log_statement = LOGSTMT_NONE;
+int			kumar_query_delay = 0;
 
 /* wait N seconds to allow attach from a debugger */
 int			PostAuthDelay = 0;
@@ -1061,6 +1063,11 @@ exec_simple_query(const char *query_string)
 	 * will normally change current memory context.)
 	 */
 	start_xact_command();
+
+	/* Kumar Server: optional delay before running the query */
+	if (kumar_query_delay > 0)
+		DirectFunctionCall1(pg_sleep,
+							Float8GetDatum(kumar_query_delay / 1000.0));
 
 	/*
 	 * Zap any pre-existing unnamed statement.  (While not strictly necessary,
