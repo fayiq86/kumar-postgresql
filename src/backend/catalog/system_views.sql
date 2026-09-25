@@ -1539,3 +1539,13 @@ CREATE VIEW pg_aios AS
     SELECT * FROM pg_get_aios();
 REVOKE ALL ON pg_aios FROM PUBLIC;
 GRANT SELECT ON pg_aios TO pg_read_all_stats;
+
+--
+-- Kumar Server: Oracle-style compatibility objects
+--
+CREATE VIEW pg_catalog.dual AS SELECT 'X'::varchar(1) AS dummy;
+GRANT SELECT ON pg_catalog.dual TO PUBLIC;
+
+CREATE FUNCTION pg_catalog.sysdate() RETURNS timestamp
+    LANGUAGE sql STABLE PARALLEL SAFE
+    AS 'SELECT LOCALTIMESTAMP(0)';

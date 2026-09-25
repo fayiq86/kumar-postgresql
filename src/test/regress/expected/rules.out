@@ -1286,6 +1286,7 @@ drop table cchild;
 SELECT viewname, definition FROM pg_views
 WHERE schemaname = 'pg_catalog'
 ORDER BY viewname;
+dual| SELECT 'X'::character varying(1) AS dummy;
 pg_aios| SELECT pid,
     io_id,
     io_generation,
