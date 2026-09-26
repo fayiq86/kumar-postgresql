@@ -680,6 +680,89 @@ pg_wal_lsn_diff(PG_FUNCTION_ARGS)
 }
 
 /*
+ * Kumar Server: warn when a standby is promoted without being sure it has
+ * all WAL from the primary.
+ *
+ * The standby only knows what the WAL receiver last heard from the primary:
+ * how far the primary's WAL went (latestWalEnd) and when (latestWalEndTime).
+ * WAL written by the primary after its last message is invisible here, so
+ * these checks can prove a standby is behind, but never that it is in sync.
+ * Promotion itself is not changed; this only reports.
+ */
+static char *
+kumar_pretty_bytes(uint64 bytes)
+{
+	return text_to_cstring(DatumGetTextPP(DirectFunctionCall1(pg_size_pretty,
+															  Int64GetDatum((int64) bytes))));
+}
+
+static void
+kumar_warn_if_promotion_may_lose_data(void)
+{
+	WalRcvState state;
+	XLogRecPtr	received;
+	XLogRecPtr	primaryEnd;
+	XLogRecPtr	replayed;
+	TimestampTz primaryEndTime;
+	TimestampTz lastMsgTime;
+	TimestampTz now = GetCurrentTimestamp();
+
+	SpinLockAcquire(&WalRcv->mutex);
+	state = WalRcv->walRcvState;
+	received = WalRcv->flushedUpto;
+	primaryEnd = WalRcv->latestWalEnd;
+	primaryEndTime = WalRcv->latestWalEndTime;
+	lastMsgTime = WalRcv->lastMsgReceiptTime;
+	SpinLockRelease(&WalRcv->mutex);
+
+	replayed = GetXLogReplayRecPtr(NULL);
+
+	/* WAL receiver never ran (e.g. restoring from archive): use replay position */
+	if (!XLogRecPtrIsValid(received))
+		received = replayed;
+
+	if (state != WALRCV_STREAMING)
+	{
+		if (primaryEndTime == 0 || !XLogRecPtrIsValid(primaryEnd))
+			ereport(WARNING,
+					errmsg("standby is not streaming from the primary, so it cannot confirm that it has all WAL"),
+					errdetail("The primary has not reported its WAL position; this standby received WAL up to %X/%08X.",
+							  LSN_FORMAT_ARGS(received)),
+					errhint("Transactions committed on the primary after the last WAL this standby has will be lost."));
+		else
+			ereport(WARNING,
+					errmsg("standby is not streaming from the primary, so it cannot confirm that it has all WAL"),
+					errdetail("The primary last reported WAL up to %X/%08X at %s; this standby received up to %X/%08X.",
+							  LSN_FORMAT_ARGS(primaryEnd),
+							  timestamptz_to_str(primaryEndTime),
+							  LSN_FORMAT_ARGS(received)),
+					errhint("Transactions committed on the primary after that point will be lost."));
+	}
+	else if (received < primaryEnd)
+		ereport(WARNING,
+				errmsg("standby is %s behind the WAL last reported by the primary",
+					   kumar_pretty_bytes(primaryEnd - received)),
+				errdetail("This standby received WAL up to %X/%08X; the primary reported %X/%08X at %s.",
+						  LSN_FORMAT_ARGS(received),
+						  LSN_FORMAT_ARGS(primaryEnd),
+						  timestamptz_to_str(primaryEndTime)),
+				errhint("Wait for the standby to catch up, or promote anyway if the primary is lost; the missing transactions will be lost."));
+	else if (lastMsgTime != 0 && wal_receiver_timeout > 0 &&
+			 TimestampDifferenceExceeds(lastMsgTime, now, wal_receiver_timeout / 2))
+		ereport(WARNING,
+				errmsg("no message from the primary for %ld seconds, so the standby cannot confirm that it has all WAL",
+					   (long) (TimestampDifferenceMilliseconds(lastMsgTime, now) / 1000)),
+				errdetail("The primary may be down; this standby received WAL up to %X/%08X.",
+						  LSN_FORMAT_ARGS(received)),
+				errhint("Transactions committed on the primary after that point will be lost."));
+
+	if (replayed < received)
+		ereport(NOTICE,
+				errmsg("%s of received WAL will be replayed before promotion completes",
+					   kumar_pretty_bytes(received - replayed)));
+}
+
+/*
  * Promotes a standby server.
  *
  * A result of "true" means that promotion has been completed if "wait" is
@@ -703,6 +786,9 @@ pg_promote(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("\"wait_seconds\" must not be negative or zero")));
+
+	/* Kumar Server: say so if promoting might lose committed transactions */
+	kumar_warn_if_promotion_may_lose_data();
 
 	/* create the promote signal file */
 	promote_file = AllocateFile(PROMOTE_SIGNAL_FILE, "w");
