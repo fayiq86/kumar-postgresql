@@ -2166,6 +2166,31 @@ SELECT $1 \parse stmt1
         </listitem>
       </varlistentry>
 
+      <varlistentry id="app-psql-meta-command-dw">
+        <term><literal>\dw[x+] [ <link linkend="app-psql-patterns"><replaceable class="parameter">pattern</replaceable></link> ]</literal></term>
+        <listitem>
+        <para>
+        Lists sessions that are waiting for a lock, and the session that
+        blocks each of them, using <function>pg_blocking_pids()</function>.
+        If <replaceable class="parameter">pattern</replaceable> is specified,
+        only blocked sessions whose user name matches the pattern are listed.
+        The state of the blocking session is always shown; a blocker that is
+        <literal>idle in transaction</literal> is a common cause of waits.
+        A blocker that is a prepared transaction is shown as
+        <literal>(prepared transaction)</literal>.
+        If <literal>+</literal> is appended to the command name, the database
+        and the full text of both queries are shown.
+        If <literal>x</literal> is appended to the command name, the results
+        are displayed in expanded mode.
+        </para>
+        <para>
+        Without the privileges of <literal>pg_read_all_stats</literal>, the
+        query text and state of other users' sessions are hidden, as in
+        <structname>pg_stat_activity</structname>.
+        </para>
+        </listitem>
+      </varlistentry>
+
       <varlistentry id="app-psql-meta-command-dx-lc">
         <term><literal>\dx[x+] [ <link linkend="app-psql-patterns"><replaceable class="parameter">pattern</replaceable></link> ]</literal></term>
         <listitem>

@@ -4935,6 +4935,96 @@ describeConfigurationParameters(const char *pattern, bool verbose,
 }
 
 /*
+ * \dw (Kumar Server)
+ *
+ * Lists sessions that are waiting for a lock, together with the session
+ * that blocks each of them. Built on pg_blocking_pids(). The pattern
+ * matches the user name of the blocked session.
+ *
+ * The blocking session's state is always shown: a blocker that is "idle in
+ * transaction" is the most common answer to "why is this stuck?".
+ * pg_blocking_pids() reports 0 for a prepared transaction, which has no
+ * session; such blockers are shown as "(prepared transaction)" instead of
+ * being lost in the join.
+ */
+bool
+listBlockedSessions(const char *pattern, bool verbose)
+{
+	PQExpBufferData buf;
+	PGresult   *res;
+	printQueryOpt myopt = pset.popt;
+
+	if (pset.sversion < 90600)
+	{
+		char		sverbuf[32];
+
+		pg_log_error("The server (version %s) does not support pg_blocking_pids().",
+					 formatPGVersionNumber(pset.sversion, false,
+										   sverbuf, sizeof(sverbuf)));
+		return true;
+	}
+
+	initPQExpBuffer(&buf);
+
+	printfPQExpBuffer(&buf, "/* %s */\n", _("Get blocked sessions"));
+	appendPQExpBuffer(&buf,
+					  "SELECT a.pid AS \"%s\",\n"
+					  "  a.usename AS \"%s\",\n"
+					  "  bp.pid AS \"%s\",\n"
+					  "  CASE WHEN bp.pid = 0 THEN '%s' ELSE b.usename::pg_catalog.text END AS \"%s\",\n"
+					  "  b.state AS \"%s\",\n"
+					  "  pg_catalog.date_trunc('second', pg_catalog.now() - a.query_start) AS \"%s\",\n"
+					  "  a.wait_event_type || ':' || a.wait_event AS \"%s\",\n",
+					  gettext_noop("Blocked PID"),
+					  gettext_noop("Blocked user"),
+					  gettext_noop("Blocking PID"),
+					  gettext_noop("(prepared transaction)"),
+					  gettext_noop("Blocking user"),
+					  gettext_noop("Blocking state"),
+					  gettext_noop("Waiting"),
+					  gettext_noop("Wait event"));
+	if (verbose)
+		appendPQExpBuffer(&buf,
+						  "  a.datname AS \"%s\",\n"
+						  "  a.query AS \"%s\",\n"
+						  "  b.query AS \"%s\"\n",
+						  gettext_noop("Database"),
+						  gettext_noop("Blocked query"),
+						  gettext_noop("Blocking query"));
+	else
+		appendPQExpBuffer(&buf,
+						  "  pg_catalog.left(a.query, 60) AS \"%s\"\n",
+						  gettext_noop("Blocked query"));
+	appendPQExpBufferStr(&buf,
+						 "FROM pg_catalog.pg_stat_activity a\n"
+						 "  CROSS JOIN LATERAL pg_catalog.unnest(pg_catalog.pg_blocking_pids(a.pid)) AS bp(pid)\n"
+						 "  LEFT JOIN pg_catalog.pg_stat_activity b ON b.pid = bp.pid\n");
+
+	if (!validateSQLNamePattern(&buf, pattern, false, false,
+								NULL, "a.usename", NULL, NULL,
+								NULL, 1))
+	{
+		termPQExpBuffer(&buf);
+		return false;
+	}
+
+	appendPQExpBufferStr(&buf, "ORDER BY a.query_start, 1, 3");
+
+	res = PSQLexec(buf.data);
+	termPQExpBuffer(&buf);
+	if (!res)
+		return false;
+
+	myopt.title = _("Blocked sessions");
+	myopt.translate_header = true;
+
+	printQuery(res, &myopt, pset.queryFout, false, pset.logfile);
+
+	PQclear(res);
+	return true;
+}
+
+/*
  * \dy
  *
  * Describes Event Triggers.

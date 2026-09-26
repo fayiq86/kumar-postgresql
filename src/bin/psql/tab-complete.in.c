@@ -1932,7 +1932,7 @@ psql_completion(const char *text, int start, int end)
 		"\\dF", "\\dFd", "\\dFp", "\\dFt", "\\dg", "\\di", "\\dl", "\\dL",
 		"\\dm", "\\dn", "\\do", "\\dO", "\\dp", "\\dP", "\\dPi", "\\dPt",
 		"\\drds", "\\drg", "\\dRs", "\\dRp", "\\ds",
-		"\\dt", "\\dT", "\\dv", "\\du", "\\dx", "\\dX", "\\dy",
+		"\\dt", "\\dT", "\\dv", "\\du", "\\dw", "\\dx", "\\dX", "\\dy",
 		"\\echo", "\\edit", "\\ef", "\\elif", "\\else", "\\encoding",
 		"\\endif", "\\endpipeline", "\\errverbose", "\\ev",
 		"\\f", "\\flush", "\\flushrequest",

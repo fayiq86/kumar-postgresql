@@ -119,6 +119,9 @@ extern bool listExtendedStats(const char *pattern, bool verbose);
 /* \dy */
 extern bool listEventTriggers(const char *pattern, bool verbose);
 
+/* \dw (Kumar Server) */
+extern bool listBlockedSessions(const char *pattern, bool verbose);
+
 /* \dRp */
 bool		listPublications(const char *pattern);
 

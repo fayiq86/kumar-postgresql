@@ -1281,6 +1281,9 @@ exec_command_d(PsqlScanState scan_state, bool active_branch, const char *cmd)
 			case 'X':			/* Extended Statistics */
 				success = listExtendedStats(pattern, show_verbose);
 				break;
+			case 'w':			/* Kumar Server: blocked sessions (waits) */
+				success = listBlockedSessions(pattern, show_verbose);
+				break;
 			case 'y':			/* Event Triggers */
 				success = listEventTriggers(pattern, show_verbose);
 				break;
