@@ -6,5 +6,6 @@
 /reindexdb
 /vacuumdb
 /pg_isready
+/pg_grantread
 
 /tmp_check/

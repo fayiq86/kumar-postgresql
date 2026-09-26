@@ -14,6 +14,7 @@ binaries = [
   'clusterdb',
   'reindexdb',
   'pg_isready',
+  'pg_grantread',
 ]
 
 foreach binary : binaries
