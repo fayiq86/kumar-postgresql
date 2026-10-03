@@ -338,7 +338,7 @@
   short_desc => 'Background writer sleep time between rounds.',
   flags => 'GUC_UNIT_MS',
   variable => 'BgWriterDelay',
-  boot_val => '200',
+  boot_val => '500',
   min => '10',
   max => '10000',
 },
