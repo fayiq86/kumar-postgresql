@@ -1,6 +1,8 @@
 PostgreSQL Database Management System
 =====================================
 
+********* i have developed a meta command \dw **********
+
 This directory contains the source code distribution of the PostgreSQL
 database management system.
 
